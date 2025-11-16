@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Simple Calculator — Single File</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="app">
+    <div class="card calc" aria-label="Calculator">
+      <div class="display" role="region" aria-live="polite">
+        <div class="meta">
+          <div class="title">Simple Calculator</div>
+          <div class="controls">
+            <button class="small-btn" id="themeBtn" title="Toggle theme">Theme</button>
+            <button class="small-btn" id="copyBtn" title="Copy result">Copy</button>
+          </div>
+        </div>
+        <div>
+          <div class="expression" id="expression">0</div>
+          <div class="result" id="result">0</div>
+        </div>
+      </div>
+
+      <div class="pad" id="pad">
+        <!-- row 1 -->
+        <button class="key func" data-action="mc">MC</button>
+        <button class="key func" data-action="mr">MR</button>
+        <button class="key func" data-action="mplus">M+</button>
+        <button class="key func" data-action="mminus">M-</button>
+
+        <!-- row 2 -->
+        <button class="key func" data-action="clear">C</button>
+        <button class="key func" data-action="back">←</button>
+        <button class="key func" data-action="percent">%</button>
+        <button class="key op" data-value="/">÷</button>
+
+        <!-- row 3 -->
+        <button class="key" data-value="7">7</button>
+        <button class="key" data-value="8">8</button>
+        <button class="key" data-value="9">9</button>
+        <button class="key op" data-value="*">×</button>
+
+        <!-- row 4 -->
+        <button class="key" data-value="4">4</button>
+        <button class="key" data-value="5">5</button>
+        <button class="key" data-value="6">6</button>
+        <button class="key op" data-value="-">−</button>
+
+        <!-- row 5 -->
+        <button class="key" data-value="1">1</button>
+        <button class="key" data-value="2">2</button>
+        <button class="key" data-value="3">3</button>
+        <button class="key op" data-value="+">+</button>
+
+        <!-- row 6 -->
+        <button class="key func" data-action="sqrt">√</button>
+        <button class="key" data-value="0">0</button>
+        <button class="key" data-value=".">.</button>
+        <button class="key op wide" data-action="equals">=</button>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;">
+        <div class="toggles">
+          <label style="font-size:13px;color:var(--muted)"><input type="checkbox" id="sound"/> Sound</label>
+        </div>
+        <div class="note">Tip: Use keyboard — numbers, + - * /, Enter for =, Backspace to delete.</div>
+      </div>
+    </div>
+
+    <div class="side card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-weight:600">History</div>
+        <div class="actions">
+          <button class="small-btn" id="clearHistory">Clear</button>
+          <button class="small-btn" id="exportHistory">Export</button>
+        </div>
+      </div>
+      <div class="history" id="history" aria-live="polite"></div>
+      <div style="display:flex;gap:8px;flex-direction:column">
+        <div style="font-weight:600">Memory</div>
+        <div class="h-item" id="memoryDisplay">Empty</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
