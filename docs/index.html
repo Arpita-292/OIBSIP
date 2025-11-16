@@ -4,7 +4,68 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Simple Calculator — Single File</title>
-  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    :root{
+      --bg:#0f1724; --panel:#0b1220; --accent:#7c3aed; --muted:#90a0b8; --glass: rgba(255,255,255,0.04);
+      --btn:#111827; --btn-hover:rgba(255,255,255,0.03); --danger:#ef4444; --success:#10b981;
+      font-synthesis: none;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;}
+    body{
+      margin:0; font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
+      background: radial-gradient(1200px 400px at 10% 10%, rgba(124,58,237,0.12), transparent),
+                  linear-gradient(180deg,#071025 0%, #041225 100%);
+      color:#e6eef8; display:flex; align-items:center; justify-content:center; padding:28px;
+    }
+    .app{
+      width:100%; max-width:980px; display:grid; grid-template-columns: 1fr 360px; gap:20px;
+      align-items:start;
+    }
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:14px; padding:18px; box-shadow: 0 6px 30px rgba(2,6,23,0.7); border:1px solid rgba(255,255,255,0.03);
+    }
+    /* Calculator panel */
+    .calc{display:flex; flex-direction:column; gap:14px}
+    .display{
+      background:var(--panel); border-radius:12px; padding:14px; min-height:120px; display:flex; flex-direction:column; justify-content:space-between;
+      box-shadow: inset 0 -6px 18px rgba(2,6,23,0.6);
+    }
+    .meta{display:flex; justify-content:space-between; align-items:center; gap:8px}
+    .meta .title{font-weight:600; color:var(--muted)}
+    .meta .controls{display:flex; gap:8px}
+    .small-btn{background:var(--glass); border-radius:8px; padding:6px 8px; font-size:13px; border:1px solid rgba(255,255,255,0.03); cursor:pointer}
+    .result{font-size:28px; text-align:right; font-weight:700; letter-spacing:0.6px}
+    .expression{font-size:14px; text-align:right; color:var(--muted); word-break:break-all}
+
+    /* grid of buttons */
+    .pad{display:grid; grid-template-columns: repeat(4,1fr); gap:10px}
+    button.key{ color:#ffffff; 
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border:none; padding:18px; border-radius:10px; font-size:18px; cursor:pointer; box-shadow: 0 6px 18px rgba(2,6,23,0.6);
+    }
+    button.key:hover{transform:translateY(-3px)}
+    .op{background:linear-gradient(180deg, rgba(124,58,237,0.18), rgba(124,58,237,0.08));}
+    .func{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); color:var(--muted); font-size:15px}
+    .wide{grid-column:span 2}
+
+    /* history & extra panel */
+    .side{display:flex; flex-direction:column; gap:12px}
+    .history{max-height:420px; overflow:auto; padding:12px; background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00)); border-radius:10px}
+    .h-item{padding:8px; border-radius:8px; margin-bottom:8px; background:rgba(255,255,255,0.02); font-size:14px}
+    .h-item .h-expr{color:var(--muted); font-size:13px}
+    .actions{display:flex; gap:8px}
+    .toggles{display:flex; gap:8px}
+
+    footer.note{font-size:13px; color:var(--muted); padding-top:8px}
+
+    /* responsive */
+    @media (max-width:920px){
+      .app{grid-template-columns:1fr;}
+      .side{order:2}
+    }
+  </style>
 </head>
 <body>
   <div class="app">
@@ -85,6 +146,165 @@
     </div>
   </div>
 
-  <script src="js/app.js"></script>
+  <script>
+    // Single-file impressive calculator logic
+    (function(){
+      const expressionEl = document.getElementById('expression');
+      const resultEl = document.getElementById('result');
+      const pad = document.getElementById('pad');
+      const historyEl = document.getElementById('history');
+      const memoryDisplay = document.getElementById('memoryDisplay');
+      const themeBtn = document.getElementById('themeBtn');
+      const copyBtn = document.getElementById('copyBtn');
+      const exportHistoryBtn = document.getElementById('exportHistory');
+      const clearHistoryBtn = document.getElementById('clearHistory');
+      const soundToggle = document.getElementById('sound');
+
+      let expr = '';
+      let mem = 0;
+      let history = [];
+
+      // helpers
+      function updateDisplay(){
+        expressionEl.textContent = expr || '0';
+        try{
+          const val = safeEval(expr || '0');
+          resultEl.textContent = prettify(val);
+        }catch(e){
+          resultEl.textContent = '—';
+        }
+      }
+
+      function prettify(n){
+        if (Number.isFinite(n)){
+          // show integer without trailing .0
+          return (Math.round((n + Number.EPSILON) * 1e12)/1e12).toString();
+        }
+        return String(n);
+      }
+
+      function pushHistory(e, r){
+        const item = {expr:e, result:prettify(r), time: new Date().toLocaleString()};
+        history.unshift(item);
+        renderHistory();
+      }
+
+      function renderHistory(){
+        historyEl.innerHTML = history.map(h=>
+          `<div class="h-item"><div style="font-weight:600">${escapeHtml(h.result)}</div><div class="h-expr">${escapeHtml(h.expr)}</div><div style="font-size:12px;color:var(--muted);margin-top:6px">${h.time}</div></div>`
+        ).join('');
+      }
+
+      function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
+      // safe eval: allow digits, operators, parentheses, ., %, spaces
+      function safeEval(input){
+        if (!input) return 0;
+        // normalize unicode minus
+        input = input.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-').replace(/\u221A/g,'sqrt');
+        // handle percent: convert 'number%' to (number/100)
+        // replace occurrences like 50% -> (50/100)
+        input = input.replace(/(\d+(?:\.\d+)?)%/g,'($1/100)');
+        // allow only characters 0-9 + - * / ( ) . and function names sqrt, pow
+        if (/[^0-9+\-*/().,% sqrtpow]/i.test(input)) throw new Error('Invalid chars');
+
+        // support sqrt(...) custom: replace sqrt(x) => Math.sqrt(x)
+        input = input.replace(/sqrt\(/g,'Math.sqrt(');
+        // support pow(a,b) => Math.pow(a,b)
+        input = input.replace(/pow\(/g,'Math.pow(');
+
+        // evaluate
+        // eslint-disable-next-line no-new-func
+        return Function('return ('+input+');')();
+      }
+
+      // keyboard support
+      window.addEventListener('keydown', (e)=>{
+        if (e.key === 'Enter') { e.preventDefault(); onEquals(); return }
+        if (e.key === 'Backspace') { e.preventDefault(); onBack(); return }
+        if (/^[0-9.]$/.test(e.key)) { expr += e.key; updateDisplay(); return }
+        if (['+','-','*','/','(',')'].includes(e.key)){ expr += e.key; updateDisplay(); return }
+      });
+
+      // actions
+      function onClear(){ expr = ''; updateDisplay(); }
+      function onBack(){ expr = expr.slice(0,-1); updateDisplay(); }
+      function onPercent(){ expr += '%'; updateDisplay(); }
+      function onSqrt(){ expr += 'sqrt('; updateDisplay(); }
+      function onEquals(){
+        try{
+          const value = safeEval(expr);
+          pushHistory(expr || '0', value);
+          resultEl.textContent = prettify(value);
+          expr = String(prettify(value));
+          updateDisplay();
+          playClick();
+        }catch(e){
+          resultEl.textContent = 'Error';
+        }
+      }
+
+      // memory
+      function memClear(){ mem = 0; memoryDisplay.textContent = 'Empty'; }
+      function memRecall(){ expr += String(mem); updateDisplay(); }
+      function memPlus(){ try{ mem = safeEval(String(mem) + '+' + (expr || '0')); memoryDisplay.textContent = prettify(mem); }catch(e){} }
+      function memMinus(){ try{ mem = safeEval(String(mem) + '-' + (expr || '0')); memoryDisplay.textContent = prettify(mem); }catch(e){} }
+
+      // UI event delegation
+      pad.addEventListener('click',(ev)=>{
+        const btn = ev.target.closest('button'); if(!btn) return;
+        const v = btn.dataset.value; const action = btn.dataset.action;
+        if (v) { expr += v; updateDisplay(); playClick(); return }
+        if (action){
+          switch(action){
+            case 'clear': onClear(); playClick(); break;
+            case 'back': onBack(); playClick(); break;
+            case 'percent': onPercent(); playClick(); break;
+            case 'sqrt': onSqrt(); playClick(); break;
+            case 'equals': onEquals(); break;
+            case 'mc': memClear(); playClick(); break;
+            case 'mr': memRecall(); playClick(); break;
+            case 'mplus': memPlus(); playClick(); break;
+            case 'mminus': memMinus(); playClick(); break;
+          }
+        }
+      });
+
+      // history actions
+      clearHistoryBtn.addEventListener('click', ()=>{ history = []; renderHistory(); });
+      exportHistoryBtn.addEventListener('click', ()=>{
+        if (!history.length) return alert('No history to export');
+        const csv = ['Expression,Result,Time', ...history.map(h=>`"${h.expr.replace(/"/g,'""')}","${h.result}","${h.time}"`) ].join('\n');
+        const blob = new Blob([csv],{type:'text/csv'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href=url; a.download='calculator-history.csv'; a.click(); URL.revokeObjectURL(url);
+      });
+
+      // copy result
+      copyBtn.addEventListener('click', ()=>{
+        const text = resultEl.textContent || '';
+        navigator.clipboard?.writeText(text).then(()=>{ alert('Result copied: '+text); }).catch(()=>{ alert('Copy failed'); });
+      });
+
+      // theme toggle (simple invert lighten)
+      let light = false;
+      themeBtn.addEventListener('click', ()=>{
+        light = !light; document.body.style.background = light ? 'linear-gradient(180deg,#f3f4f6,#e6eef8)' : 'radial-gradient(1200px 400px at 10% 10%, rgba(124,58,237,0.12), transparent), linear-gradient(180deg,#071025 0%, #041225 100%)';
+        document.body.style.color = light ? '#031022' : '#e6eef8';
+      });
+
+      // sound (tiny click)
+      function playClick(){ if(!soundToggle.checked) return; try{ const ctx = new (window.AudioContext||window.webkitAudioContext)(); const o = ctx.createOscillator(); const g = ctx.createGain(); o.type='sine'; o.frequency.setValueAtTime(600, ctx.currentTime); g.gain.setValueAtTime(0.01, ctx.currentTime); o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime+0.02); }catch(e){}
+      }
+
+      // small utility: sanitize and handle initial
+      function init(){ updateDisplay(); renderHistory(); }
+      init();
+
+      // expose for debugging in devtools
+      window._calc = {get expr(){return expr}, set expr(x){expr = String(x); updateDisplay()}, get mem(){return mem}, history, pushHistory};
+
+    })();
+  </script>
 </body>
 </html>
